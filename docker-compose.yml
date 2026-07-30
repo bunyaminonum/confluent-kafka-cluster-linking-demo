@@ -1,0 +1,237 @@
+networks:
+  dr-net:
+    name: dr-net
+
+x-controller-common: &controller-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: kafka-dr-node:local
+  networks:
+    - dr-net
+  environment: &controller-env-common
+    KAFKA_PROCESS_ROLES: controller
+    KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093
+    KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT
+    KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+
+x-broker-common: &broker-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: kafka-dr-node:local
+  networks:
+    - dr-net
+  environment: &broker-env-common
+    KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+    KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+    KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    KAFKA_PROCESS_ROLES: broker
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+    KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_CONFLUENT_METADATA_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_CONFLUENT_SECURITY_EVENT_LOGGER_EXPORTER_KAFKA_TOPIC_REPLICAS: 3
+    KAFKA_CONFLUENT_BALANCER_ENABLE: "false"
+    KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+    KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+  healthcheck:
+    test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+    interval: 10s
+    timeout: 10s
+    retries: 20
+
+services:
+  # ============== İSTANBUL — 3 controller + 3 broker ==============
+  istanbul-controller-1:
+    <<: *controller-common
+    hostname: istanbul-controller-1
+    container_name: istanbul-controller-1
+    environment:
+      <<: *controller-env-common
+      CLUSTER_ID: "XZp5Eb8audug4d4_3Czp2g"
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@istanbul-controller-1:9093,2@istanbul-controller-2:9093,3@istanbul-controller-3:9093"
+    volumes:
+      - istanbul-controller-1-data:/var/lib/kafka/data
+
+  istanbul-controller-2:
+    <<: *controller-common
+    hostname: istanbul-controller-2
+    container_name: istanbul-controller-2
+    environment:
+      <<: *controller-env-common
+      CLUSTER_ID: "XZp5Eb8audug4d4_3Czp2g"
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@istanbul-controller-1:9093,2@istanbul-controller-2:9093,3@istanbul-controller-3:9093"
+    volumes:
+      - istanbul-controller-2-data:/var/lib/kafka/data
+
+  istanbul-controller-3:
+    <<: *controller-common
+    hostname: istanbul-controller-3
+    container_name: istanbul-controller-3
+    environment:
+      <<: *controller-env-common
+      CLUSTER_ID: "XZp5Eb8audug4d4_3Czp2g"
+      KAFKA_NODE_ID: 3
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@istanbul-controller-1:9093,2@istanbul-controller-2:9093,3@istanbul-controller-3:9093"
+    volumes:
+      - istanbul-controller-3-data:/var/lib/kafka/data
+
+  istanbul-broker-1:
+    <<: *broker-common
+    hostname: istanbul-broker-1
+    container_name: istanbul-broker-1
+    depends_on:
+      - istanbul-controller-1
+      - istanbul-controller-2
+      - istanbul-controller-3
+    environment:
+      <<: *broker-env-common
+      CLUSTER_ID: "XZp5Eb8audug4d4_3Czp2g"
+      KAFKA_NODE_ID: 11
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://istanbul-broker-1:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@istanbul-controller-1:9093,2@istanbul-controller-2:9093,3@istanbul-controller-3:9093"
+    volumes:
+      - istanbul-broker-1-data:/var/lib/kafka/data
+
+  istanbul-broker-2:
+    <<: *broker-common
+    hostname: istanbul-broker-2
+    container_name: istanbul-broker-2
+    depends_on:
+      - istanbul-controller-1
+      - istanbul-controller-2
+      - istanbul-controller-3
+    environment:
+      <<: *broker-env-common
+      CLUSTER_ID: "XZp5Eb8audug4d4_3Czp2g"
+      KAFKA_NODE_ID: 12
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://istanbul-broker-2:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@istanbul-controller-1:9093,2@istanbul-controller-2:9093,3@istanbul-controller-3:9093"
+    volumes:
+      - istanbul-broker-2-data:/var/lib/kafka/data
+
+  istanbul-broker-3:
+    <<: *broker-common
+    hostname: istanbul-broker-3
+    container_name: istanbul-broker-3
+    depends_on:
+      - istanbul-controller-1
+      - istanbul-controller-2
+      - istanbul-controller-3
+    environment:
+      <<: *broker-env-common
+      CLUSTER_ID: "XZp5Eb8audug4d4_3Czp2g"
+      KAFKA_NODE_ID: 13
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://istanbul-broker-3:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@istanbul-controller-1:9093,2@istanbul-controller-2:9093,3@istanbul-controller-3:9093"
+    volumes:
+      - istanbul-broker-3-data:/var/lib/kafka/data
+
+  # ============== ANKARA — 3 controller + 3 broker ==============
+  ankara-controller-1:
+    <<: *controller-common
+    hostname: ankara-controller-1
+    container_name: ankara-controller-1
+    environment:
+      <<: *controller-env-common
+      CLUSTER_ID: "mtAYBSOIZT28ihb8XJdANw"
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@ankara-controller-1:9093,2@ankara-controller-2:9093,3@ankara-controller-3:9093"
+    volumes:
+      - ankara-controller-1-data:/var/lib/kafka/data
+
+  ankara-controller-2:
+    <<: *controller-common
+    hostname: ankara-controller-2
+    container_name: ankara-controller-2
+    environment:
+      <<: *controller-env-common
+      CLUSTER_ID: "mtAYBSOIZT28ihb8XJdANw"
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@ankara-controller-1:9093,2@ankara-controller-2:9093,3@ankara-controller-3:9093"
+    volumes:
+      - ankara-controller-2-data:/var/lib/kafka/data
+
+  ankara-controller-3:
+    <<: *controller-common
+    hostname: ankara-controller-3
+    container_name: ankara-controller-3
+    environment:
+      <<: *controller-env-common
+      CLUSTER_ID: "mtAYBSOIZT28ihb8XJdANw"
+      KAFKA_NODE_ID: 3
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@ankara-controller-1:9093,2@ankara-controller-2:9093,3@ankara-controller-3:9093"
+    volumes:
+      - ankara-controller-3-data:/var/lib/kafka/data
+
+  ankara-broker-1:
+    <<: *broker-common
+    hostname: ankara-broker-1
+    container_name: ankara-broker-1
+    depends_on:
+      - ankara-controller-1
+      - ankara-controller-2
+      - ankara-controller-3
+    environment:
+      <<: *broker-env-common
+      CLUSTER_ID: "mtAYBSOIZT28ihb8XJdANw"
+      KAFKA_NODE_ID: 11
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://ankara-broker-1:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@ankara-controller-1:9093,2@ankara-controller-2:9093,3@ankara-controller-3:9093"
+    volumes:
+      - ankara-broker-1-data:/var/lib/kafka/data
+
+  ankara-broker-2:
+    <<: *broker-common
+    hostname: ankara-broker-2
+    container_name: ankara-broker-2
+    depends_on:
+      - ankara-controller-1
+      - ankara-controller-2
+      - ankara-controller-3
+    environment:
+      <<: *broker-env-common
+      CLUSTER_ID: "mtAYBSOIZT28ihb8XJdANw"
+      KAFKA_NODE_ID: 12
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://ankara-broker-2:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@ankara-controller-1:9093,2@ankara-controller-2:9093,3@ankara-controller-3:9093"
+    volumes:
+      - ankara-broker-2-data:/var/lib/kafka/data
+
+  ankara-broker-3:
+    <<: *broker-common
+    hostname: ankara-broker-3
+    container_name: ankara-broker-3
+    depends_on:
+      - ankara-controller-1
+      - ankara-controller-2
+      - ankara-controller-3
+    environment:
+      <<: *broker-env-common
+      CLUSTER_ID: "mtAYBSOIZT28ihb8XJdANw"
+      KAFKA_NODE_ID: 13
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://ankara-broker-3:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@ankara-controller-1:9093,2@ankara-controller-2:9093,3@ankara-controller-3:9093"
+    volumes:
+      - ankara-broker-3-data:/var/lib/kafka/data
+
+volumes:
+  istanbul-controller-1-data:
+  istanbul-controller-2-data:
+  istanbul-controller-3-data:
+  istanbul-broker-1-data:
+  istanbul-broker-2-data:
+  istanbul-broker-3-data:
+  ankara-controller-1-data:
+  ankara-controller-2-data:
+  ankara-controller-3-data:
+  ankara-broker-1-data:
+  ankara-broker-2-data:
+  ankara-broker-3-data:
