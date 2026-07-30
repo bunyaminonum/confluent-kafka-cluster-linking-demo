@@ -4,13 +4,43 @@ Spins up two independent Kafka clusters (Istanbul, Ankara), each with an isolate
 
 ## Topology
 
-```
-ISTANBUL (CLUSTER_ID: XZp5Eb8audug4d4_3Czp2g)       ANKARA (CLUSTER_ID: mtAYBSOIZT28ihb8XJdANw)
-  3x controller (node.id 1-3)                        3x controller (node.id 1-3)
-  3x broker     (node.id 11-13)                       3x broker     (node.id 11-13)
+```mermaid
+flowchart LR
+    subgraph IST["ISTANBUL — CLUSTER_ID: XZp5Eb8...p2g"]
+        direction TB
+        ISTQ[3x Controller<br/>KRaft quorum]
+        ISTB[3x Broker]
+        ISTQ --- ISTB
+        ISTNative[("odeme<br/>native, writable")]
+        ISTMirror[("ank.odeme<br/>mirror, read-only")]
+        ISTB --> ISTNative
+        ISTB --> ISTMirror
+        ISTCG(["cg-ist<br/>consumer group"])
+        ISTCG -.->|reads| ISTNative
+        ISTCG -.->|reads| ISTMirror
+    end
+
+    subgraph ANK["ANKARA — CLUSTER_ID: mtAYBSOI...ANw"]
+        direction TB
+        ANKQ[3x Controller<br/>KRaft quorum]
+        ANKB[3x Broker]
+        ANKQ --- ANKB
+        ANKNative[("odeme<br/>native, writable")]
+        ANKMirror[("ist.odeme<br/>mirror, read-only")]
+        ANKB --> ANKNative
+        ANKB --> ANKMirror
+        ANKCG(["cg-ank<br/>consumer group"])
+        ANKCG -.->|reads| ANKNative
+        ANKCG -.->|reads| ANKMirror
+    end
+
+    ISTNative ==>|cluster link "ist-ank-link"<br/>BIDIRECTIONAL| ANKMirror
+    ANKNative ==>|cluster link "ist-ank-link"<br/>BIDIRECTIONAL| ISTMirror
 ```
 
 Brokers and controllers run as separate processes (isolated KRaft) — this is required for the coordinator election mechanism that BIDIRECTIONAL cluster links depend on; combined mode (broker+controller in a single process) breaks that mechanism.
+
+Each side runs a regex-subscribed consumer group (`cg-ist`, `cg-ank`) that reads the union of its own native topic and the mirror of the other side — so either region already has a complete, up-to-date view of `odeme`, ready to keep serving traffic if the other region goes down.
 
 The `Dockerfile` extends `confluentinc/cp-server:8.3.0` and bakes the cluster-link config files from `configs/` into the image under `/kafka-configs/` — so you don't need a separate `docker cp` step before creating links.
 
