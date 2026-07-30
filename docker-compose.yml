@@ -46,7 +46,7 @@ x-broker-common: &broker-common
     retries: 20
 
 services:
-  # ============== İSTANBUL — 3 controller + 3 broker ==============
+  # ============== ISTANBUL — 3 controller + 3 broker ==============
   istanbul-controller-1:
     <<: *controller-common
     hostname: istanbul-controller-1
