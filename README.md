@@ -34,8 +34,8 @@ flowchart LR
         ANKCG -.->|reads| ANKMirror
     end
 
-    ISTNative ==>|cluster link "ist-ank-link"<br/>BIDIRECTIONAL| ANKMirror
-    ANKNative ==>|cluster link "ist-ank-link"<br/>BIDIRECTIONAL| ISTMirror
+    ISTNative ==>|cluster link ist-ank-link<br/>BIDIRECTIONAL| ANKMirror
+    ANKNative ==>|cluster link ist-ank-link<br/>BIDIRECTIONAL| ISTMirror
 ```
 
 Brokers and controllers run as separate processes (isolated KRaft) — this is required for the coordinator election mechanism that BIDIRECTIONAL cluster links depend on; combined mode (broker+controller in a single process) breaks that mechanism.
